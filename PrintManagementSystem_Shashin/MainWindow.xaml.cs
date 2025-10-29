@@ -126,42 +126,184 @@ namespace PrintManagementSystem_Shashin
 
         private void DeleteOperation(object sender, RoutedEventArgs e)
         {
-
+            if (Operations.SelectedIndex != -1)
+            {
+                Operations.Items.Remove(Operations.Items[Operations.SelectedIndex]);
+                CalculationsAllPrice();
+            }
+            else MessageBox.Show("Пожалуйста, выберите операцию для удаления");
         }
 
+        public void CalculationsAllPrice()
+        {
+            float allPrice = 0;
+            for (int i = 0; i < Operations.Items.Count; i++)
+            {
+                TypeOperationsWindow newTOW = Operations.Items[i] as TypeOperationsWindow;
+                allPrice += newTOW.price;
+            }
+            labelAllPrice.Content = "Общая сумма: " + allPrice;
+        }
         private void EditOperation(object sender, RoutedEventArgs e)
         {
+            if (Operations.SelectedIndex != -1)
+            {
+                TypeOperationsWindow newTOW = Operations.Items[Operations.SelectedIndex] as TypeOperationsWindow;
 
+                typeOperation.SelectedItem = typeOperationList.Find(x => x.id == newTOW.typeOperation).name;
+                formats.SelectedItem = formatList.Find(x => x.id == newTOW.format).format;
+
+                if (newTOW.side == 1) TwoSides.IsChecked = false;
+                else if (newTOW.side == 2) TwoSides.IsChecked = true;
+
+                Colors.IsChecked = newTOW.color;
+
+                string[] resultColor = newTOW.colotText.Split('(');
+                if (resultColor.Length == 1) LotOfColor.IsChecked = false;
+                else if (resultColor.Length == 2) LotOfColor.IsChecked = true;
+
+                textBoxCount.Text = newTOW.count.ToString();
+                textBoxPrice.Text = newTOW.price.ToString();
+
+                addOperationButton.Content = "Изменить";
+
+                Operations.Items.Remove(Operations.Items[Operations.SelectedIndex]);
+            }
+            else MessageBox.Show("Пожалуйста, выберите операцию для редактирования");
         }
 
         private void SelectedType(object sender, SelectionChangedEventArgs e)
         {
+            if(typeOperation.SelectedIndex != -1)
+            {
+                if(typeOperation.SelectedItem as String == "Сканирование")
+                {
+                    formats.SelectedIndex = -1;
+                    TwoSides.IsChecked = false;
+                    Colors.IsChecked = false;
+                    LotOfColor.IsChecked = false;
 
+                    formats.IsEnabled = false;
+                    TwoSides.IsEnabled = false;
+                    Colors.IsEnabled = false;
+                    LotOfColor.IsEnabled = false;
+                } else if(typeOperation.SelectedItem as String == "Печать" || typeOperation.SelectedItem as String == "Копия")
+                {
+                    formats.IsEnabled = true;
+                    TwoSides.IsEnabled = true;
+                    Colors.IsEnabled = true;
+                    if(formats.SelectedItem as String == "A4")
+                    {
+                        TwoSides.IsEnabled = true;
+                        Colors.IsEnabled = true;
+                        LotOfColor.IsEnabled = false;
+                    } else if (formats.SelectedItem as String == "A3")
+                    {
+                        TwoSides.IsEnabled = true;
+                        Colors.IsEnabled = false;
+                        LotOfColor.IsEnabled = false;
+                    } else if (formats.SelectedItem as String == "A2" || formats.SelectedItem as String == "A1")
+                    {
+                        TwoSides.IsEnabled = false;
+                        Colors.IsEnabled = true;
+                        LotOfColor.IsEnabled = true;
+                    }
+                }
+                else if (typeOperation.SelectedItem as String == "Ризограф")
+                {
+                    formats.SelectedIndex = 0;
+                    formats.IsEnabled = false;
+                    Colors.IsEnabled = false;
+                    LotOfColor.IsEnabled= false;
+                }
+                if (textBoxCount.Text.Length == 0) textBoxCount.Text = "1";
+                CostCalculations();
+            }
         }
 
         private void SelectedFormat(object sender, SelectionChangedEventArgs e)
         {
+            if(formats.SelectedItem as String == "A4")
+            {
+                TwoSides.IsEnabled = true;
+                Colors.IsEnabled = true;
+                LotOfColor.IsEnabled = false;
+            }
+            else if(formats.SelectedItem as String == "A3")
+            {
+                TwoSides.IsEnabled = true;
+                Colors.IsEnabled = false;
+                LotOfColor.IsEnabled = false;
+            }
+            else
+            {
+                TwoSides.IsEnabled = false;
+                Colors.IsEnabled = true;
+                LotOfColor.IsEnabled = true;
+            }
 
+            if(textBoxCount.Text.Length == 0) textBoxCount.Text = "1";
+            CostCalculations();
         }
 
-        private void textBoxCount_TextChanged(object sender, TextChangedEventArgs e)
-        {
-
-        }
+        private void textBoxCount_TextChanged(object sender, TextChangedEventArgs e) => CostCalculations();
 
         private void TextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
-
+            try
+            {
+                int.Parse(textBoxCount.Text);
+            }
+            catch
+            {
+                MessageBox.Show("Введите цифры");
+            }
         }
 
         private void AddOperation(object sender, RoutedEventArgs e)
         {
+            TypeOperationsWindow newTOW = new TypeOperationsWindow();
+            newTOW.typeOperationText = typeOperation.SelectedItem as String;
+            newTOW.typeOperation = typeOperationList.Find(x => x.name == newTOW.typeOperationText).id;
 
+            if (formats.SelectedIndex != -1) 
+            { 
+                newTOW.formatText = formats.SelectedItem as String;
+                newTOW.format = formatList.Find(x => x.format == newTOW.formatText).id;
+            }
+            if(TwoSides.IsEnabled == true)
+            {
+                if (TwoSides.IsChecked == false) newTOW.side = 1;
+                else newTOW.side = 2;
+            }
+            if(Colors.IsChecked == false)
+            {
+                newTOW.colotText = "Ч/Б";
+                newTOW.color = false;
+                if(LotOfColor.IsChecked == true)
+                {
+                    newTOW.colotText += "(> 50%)";
+                    newTOW.occupancy = true;
+                }
+            }
+            else
+            {
+                newTOW.colotText = "ЦВ";
+                newTOW.color = true;
+
+                if(LotOfColor.IsChecked == true)
+                {
+                    newTOW.colotText += "(> 50%)";
+                    newTOW.occupancy = true;
+                }
+            }
+            newTOW.count = int.Parse(textBoxCount.Text);
+            newTOW.price = float.Parse(textBoxPrice.Text);
+            addOperationButton.Content = "Добавить";
+            Operations.Items.Add(newTOW);
+            CalculationsAllPrice();
         }
 
-        private void ColorsChange(object sender, RoutedEventArgs e)
-        {
-
-        }
+        private void ColorsChange(object sender, RoutedEventArgs e) => CostCalculations();
     }
 }
